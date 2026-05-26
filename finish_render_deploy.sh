@@ -29,9 +29,7 @@ REPO_URL="https://github.com/${GH_USER}/${REPO_NAME}"
 if ! gh repo view "$GH_USER/$REPO_NAME" >/dev/null 2>&1; then
   gh repo create "$REPO_NAME" --public --source=. --remote=origin --push
 else
-  git remote remove origin 2>/dev/null || true
-  git remote add origin "git@github.com:${GH_USER}/${REPO_NAME}.git" 2>/dev/null || \
-    git remote add origin "$REPO_URL.git"
+  git remote set-url origin "$REPO_URL.git" 2>/dev/null || git remote add origin "$REPO_URL.git"
   git push -u origin main
 fi
 
