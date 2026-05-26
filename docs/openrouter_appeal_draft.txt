@@ -10,8 +10,8 @@ Description:
 I am building CatHealthAI, an iOS app for cat owners that uses the Feline Grimace Scale (FGS) on cat face photos. This is my own product, not a reseller or API marketplace.
 
 Architecture:
-- End users in Hong Kong connect only to my US relay: https://cathealthai-vision-proxy.onrender.com/v1/fgs
-- The relay (Render, Oregon) calls OpenRouter with my API key
+- End users in Hong Kong connect only to my US relay: Vercel Edge (iad1) → /v1/fgs
+- The relay calls OpenRouter with my API key (not embedded in the mobile app)
 - Model requested: anthropic/claude-sonnet-4.6 (vision)
 - API keys are NOT embedded in the mobile app
 

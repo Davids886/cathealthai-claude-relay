@@ -1,8 +1,11 @@
 {
+  "rewrites": [
+    { "source": "/v1/fgs", "destination": "/api/fgs" },
+    { "source": "/health", "destination": "/api/health" },
+    { "source": "/v1/probe", "destination": "/api/probe" }
+  ],
   "functions": {
-    "api/fgs.js": {
-      "maxDuration": 60,
-      "regions": ["iad1"]
-    }
+    "api/fgs.js": { "maxDuration": 60 },
+    "api/probe.js": { "maxDuration": 60 }
   }
 }

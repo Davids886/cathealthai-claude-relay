@@ -1,3 +1,4 @@
+# DEPRECATED — 已改用 Vercel Edge（relay-vercel/ + deploy_vercel.sh）
 # Render Blueprint — Oregon 美國區 Claude Relay
 # Dashboard: New → Blueprint → 連接 Git repo 後選此檔
 services:
