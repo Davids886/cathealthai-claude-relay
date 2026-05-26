@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Claude FGS relay — Anthropic 直連（優先）或 OpenRouter。POST /v1/fgs"""
+"""Claude FGS relay — 僅 OpenRouter（anthropic/claude-*）。POST /v1/fgs"""
 
 from __future__ import annotations
 
@@ -210,14 +210,10 @@ def call_openrouter(api_key: str, image_b64: str) -> dict:
 
 
 def analyze_image(image_b64: str) -> dict:
-    anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     openrouter_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
-
-    if anthropic_key.startswith("sk-ant-"):
-        return call_anthropic_direct(anthropic_key, image_b64)
     if openrouter_key.startswith("sk-or-"):
         return call_openrouter(openrouter_key, image_b64)
-    raise ValueError("missing_api_key: set ANTHROPIC_API_KEY or OPENROUTER_API_KEY")
+    raise ValueError("missing_api_key: set OPENROUTER_API_KEY on the relay server")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -235,53 +231,24 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         if self.path in ("/health", "/health/"):
-            backend = "anthropic" if os.environ.get("ANTHROPIC_API_KEY", "").startswith("sk-ant-") else "openrouter"
-            self._json(200, {"ok": True, "backend": backend})
+            self._json(200, {"ok": True, "backend": "openrouter"})
             return
         if self.path in ("/v1/probe", "/v1/probe/"):
             try:
-                backend = "anthropic" if os.environ.get("ANTHROPIC_API_KEY", "").startswith("sk-ant-") else "openrouter"
-                key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("OPENROUTER_API_KEY", "")
-                if backend == "anthropic":
-                    payload = {
-                        "model": ANTHROPIC_VISION_MODEL,
-                        "max_tokens": 8,
-                        "messages": [{"role": "user", "content": "reply ok"}],
-                    }
-                    req = Request(
-                        ANTHROPIC_URL,
-                        data=json.dumps(payload).encode(),
-                        headers={
-                            "x-api-key": key,
-                            "anthropic-version": ANTHROPIC_VERSION,
-                            "Content-Type": "application/json",
-                        },
-                        method="POST",
-                    )
-                else:
-                    payload = {
-                        "model": CLAUDE_MODELS[0],
-                        "messages": [{"role": "user", "content": "reply ok"}],
-                        "max_tokens": 8,
-                    }
-                    req = Request(
-                        OPENROUTER_URL,
-                        data=json.dumps(payload).encode(),
-                        headers={
-                            "Authorization": f"Bearer {key}",
-                            "Content-Type": "application/json",
-                            "HTTP-Referer": "https://cathealthai.com",
-                            "X-Title": "CatHealthAI_App",
-                        },
-                        method="POST",
-                    )
-                with urlopen(req, timeout=60) as resp:
-                    raw = resp.read().decode()[:300]
-                self._json(200, {"ok": True, "backend": backend, "sample": raw})
+                key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+                if not key.startswith("sk-or-"):
+                    self._json(500, {"ok": False, "error": "missing OPENROUTER_API_KEY"})
+                    return
+                # 1x1 JPEG，與正式 FGS 相同路徑
+                tiny = (
+                    "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAABAAEDAREAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
+                )
+                result = call_openrouter(key, tiny)
+                self._json(200, {"ok": True, "backend": "openrouter", "modelId": result.get("modelId")})
             except HTTPError as exc:
                 body = exc.read().decode(errors="replace") if hasattr(exc, "read") else str(exc)
                 code, err = parse_upstream_error(body)
-                self._json(code, {"ok": False, "backend": backend, "error": err})
+                self._json(code, {"ok": False, "backend": "openrouter", "error": err})
             except Exception as exc:
                 self._json(500, {"ok": False, "error": str(exc)})
             return
