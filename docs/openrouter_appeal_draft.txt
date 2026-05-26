@@ -1,0 +1,26 @@
+OpenRouter Appeal — CatHealthAI (Claude 403 TOS)
+
+Contact email: lamtaiwai8@gmail.com
+OpenRouter user_id (from API): user_3E8gYIVUUibJm5PrdkSD6I1eS5Y
+
+Subject: Request to restore Anthropic Claude model access (403 Terms of Service)
+
+Description:
+
+I am building CatHealthAI, an iOS app for cat owners that uses the Feline Grimace Scale (FGS) on cat face photos. This is my own product, not a reseller or API marketplace.
+
+Architecture:
+- End users in Hong Kong connect only to my US relay: https://cathealthai-vision-proxy.onrender.com/v1/fgs
+- The relay (Render, Oregon) calls OpenRouter with my API key
+- Model requested: anthropic/claude-sonnet-4.6 (vision)
+- API keys are NOT embedded in the mobile app
+
+Issue:
+- All anthropic/claude-* models return HTTP 403: "The request is prohibited due to a violation of provider Terms Of Service"
+- This occurs from Hong Kong and from US Render egress (same account)
+- Non-Claude models (e.g. qwen/qwen2.5-vl-72b-instruct) work normally
+- Account has credits (~$10 remaining)
+
+I have rotated my API key and removed keys from client source code. Please review my account and restore Claude access, or advise what policy change is required for a legitimate mobile app backend.
+
+Thank you.
