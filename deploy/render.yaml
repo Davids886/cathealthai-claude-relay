@@ -1,0 +1,14 @@
+# Render.com 一鍵部署（選 Oregon / Frankfurt 等非港區域）
+# https://dashboard.render.com → New → Blueprint → 連接此 repo
+services:
+  - type: web
+    name: cathealthai-vision-proxy
+    runtime: docker
+    region: oregon
+    plan: free
+    dockerfilePath: ./deploy/Dockerfile
+    dockerContext: ..
+    envVars:
+      - key: OPENROUTER_API_KEY
+        sync: false
+    healthCheckPath: /health

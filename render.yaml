@@ -1,0 +1,14 @@
+# Render Blueprint — Oregon 美國區 Claude Relay
+# Dashboard: New → Blueprint → 連接 Git repo 後選此檔
+services:
+  - type: web
+    name: cathealthai-vision-proxy
+    runtime: docker
+    region: oregon
+    plan: free
+    dockerfilePath: ./deploy/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: OPENROUTER_API_KEY
+        sync: false
+    healthCheckPath: /health

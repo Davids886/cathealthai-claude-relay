@@ -1,0 +1,5 @@
+.bridge.env
+.bridge-venv/
+pending_scan.jpg
+fgs_result.json
+.bridge_processing
