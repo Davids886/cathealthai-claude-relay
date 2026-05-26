@@ -1,0 +1,11 @@
+name = "cathealthai-claude-relay"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+workers_dev = true
+
+# 依 OpenRouter 上游探測放置 Worker（比固定 region 更易脫離 HK colo）
+[placement]
+hostname = "openrouter.ai"
+
+[vars]
+# 部署後在 Cloudflare Dashboard 設定 Secret: OPENROUTER_API_KEY

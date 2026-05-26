@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "api/fgs.js": {
+      "maxDuration": 60,
+      "regions": ["iad1"]
+    }
+  }
+}

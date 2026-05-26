@@ -3,3 +3,12 @@
 pending_scan.jpg
 fgs_result.json
 .bridge_processing
+.DS_Store
+__pycache__/
+*.log
+cf-claude-relay/node_modules/
+cf-claude-relay/.wrangler/
+CatHealthAI/
+Components/
+Services/
+UI/
