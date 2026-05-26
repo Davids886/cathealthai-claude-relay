@@ -137,58 +137,76 @@ def call_anthropic_direct(api_key: str, image_b64: str) -> dict:
 
 
 def call_openrouter(api_key: str, image_b64: str) -> dict:
-    payload = {
-        "model": CLAUDE_MODELS[0],
-        "models": CLAUDE_MODELS,
-        "max_tokens": 1024,
-        "provider": {
-            "order": ["Amazon Bedrock", "Anthropic", "Google Vertex"],
-            "allow_fallbacks": True,
-        },
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"},
-                    },
-                    {"type": "text", "text": USER_PROMPT},
-                ],
+    user_content = [
+        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"}},
+        {"type": "text", "text": USER_PROMPT},
+    ]
+    provider_plans = [
+        {"order": ["amazon-bedrock"], "allow_fallbacks": False},
+        {"order": ["google-vertex"], "allow_fallbacks": False},
+        {"order": ["amazon-bedrock", "google-vertex", "anthropic"], "allow_fallbacks": True},
+        None,
+    ]
+    last_err: dict | None = None
+    for provider in provider_plans:
+        payload: dict = {
+            "model": CLAUDE_MODELS[0],
+            "models": CLAUDE_MODELS,
+            "max_tokens": 1024,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_content},
+            ],
+        }
+        if provider is not None:
+            payload["provider"] = provider
+        req = Request(
+            OPENROUTER_URL,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://cathealthai.com",
+                "X-Title": "CatHealthAI_App",
             },
-        ],
-    }
-    req = Request(
+            method="POST",
+        )
+        try:
+            with urlopen(req, timeout=120) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+        except HTTPError as exc:
+            body = exc.read() if hasattr(exc, "read") else b""
+            _, err = parse_upstream_error(body)
+            last_err = err if isinstance(err, dict) else {"message": str(err)}
+            msg = (last_err.get("message") or "").lower()
+            if "region" in msg or "terms of service" in msg or "prohibited" in msg:
+                continue
+            raise HTTPError(OPENROUTER_URL, exc.code, json.dumps(last_err), None, None) from exc
+        if "error" in data:
+            err = data["error"]
+            last_err = err if isinstance(err, dict) else {"message": str(err)}
+            msg = (last_err.get("message") or "").lower()
+            if "region" in msg or "terms of service" in msg or "prohibited" in msg:
+                continue
+            code = last_err.get("code", 403)
+            raise HTTPError(OPENROUTER_URL, int(code), json.dumps(last_err), None, None)
+        model = data.get("model", CLAUDE_MODELS[0])
+        if not is_claude(model):
+            last_err = {"message": f"non_claude_model: {model}"}
+            continue
+        text = data["choices"][0]["message"]["content"]
+        out = extract_json(text)
+        out["modelId"] = model
+        out["tier"] = "openrouter"
+        return out
+    code = last_err.get("code", 403) if isinstance(last_err, dict) else 403
+    raise HTTPError(
         OPENROUTER_URL,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://cathealthai.com",
-            "X-Title": "CatHealthAI_App",
-        },
-        method="POST",
+        int(code) if str(code).isdigit() else 403,
+        json.dumps(last_err or {"message": "all_provider_routes_failed"}),
+        None,
+        None,
     )
-    try:
-        with urlopen(req, timeout=120) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-    except HTTPError as exc:
-        body = exc.read() if hasattr(exc, "read") else b""
-        code, err = parse_upstream_error(body)
-        raise HTTPError(OPENROUTER_URL, code, json.dumps(err), None, None) from exc
-    if "error" in data:
-        err = data["error"]
-        code = err.get("code", 403) if isinstance(err, dict) else 403
-        raise HTTPError(OPENROUTER_URL, int(code), json.dumps(err), None, None)
-    model = data.get("model", CLAUDE_MODELS[0])
-    if not is_claude(model):
-        raise ValueError(f"non_claude_model: {model}")
-    text = data["choices"][0]["message"]["content"]
-    out = extract_json(text)
-    out["modelId"] = model
-    out["tier"] = "openrouter"
-    return out
 
 
 def analyze_image(image_b64: str) -> dict:
