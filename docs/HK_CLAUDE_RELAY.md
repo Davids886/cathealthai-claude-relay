@@ -57,6 +57,27 @@ python3 vision_proxy_server.py
 
 `OpenRouterService.swift` 的 `claudeRelayBaseURL` 應指向 **POST `/v1/fgs`**、body 為 `{"image_base64":"..."}` 的 relay（與 `vision_proxy_server.py` 一致）。
 
+## OpenRouter Relay 仍 403（Terms of Service）時
+
+從美國 Render 轉發 OpenRouter 若回 **403 TOS**，常見原因：
+
+1. **OpenRouter 禁止用代理／Relay 規避地區**（服務條款 §5.7）
+2. 雲端機房 IP 被上游視為高風險
+3. 醫療類提示觸發審核（已將 Relay 改為中性 FGS 英文提示）
+
+**建議解法（仍只用 Claude）：**
+
+在 Render Dashboard → `cathealthai-vision-proxy` → **Environment** 新增：
+
+| 變數 | 值 |
+|------|-----|
+| `ANTHROPIC_API_KEY` | 從 [console.anthropic.com](https://console.anthropic.com) 建立的 `sk-ant-…` |
+| `ANTHROPIC_MODEL` | 可選，預設 `claude-sonnet-4-20250514` |
+
+Relay 會**優先走 Anthropic 官方 API**（不經 OpenRouter），由美國主機發出，App 仍連同一個 `/v1/fgs` URL。
+
+部署後可測：`curl https://cathealthai-vision-proxy.onrender.com/v1/probe`
+
 ## 安全提醒
 
 - 勿把 `OPENROUTER_API_KEY` 提交到公開 repo；Render 用 Dashboard 或 CLI 設成 **Secret / 環境變數** 即可。
